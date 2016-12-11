@@ -1,31 +1,52 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import time
+from scipy.io import wavfile
 import scipy.io as sc
-class block:
-    def __init__(self, songName, blockNum, FFT):
-        self.id = songName
-        self.index= blockNum
-        self.points = FFT
+import os
+import matplotlib.pyplot as plt
 
-def hanning(x,N):
-    return 0.5 - 0.5 * np.cos(2 * np.pi * x / N)
+def detect_spike(search_res):
+    for res in search_res:
+        print(len(res))
+        print(res)
+        plt.plot(np.arange(len(res))/44100,res)
+        plt.show()
+
+def conv(samples, songs):
+    search_res = []
+    for i in range(len(songs)):
+        print(len(samples[i]))
+        print(len(songs[i]))
+        search_res.append(np.fft.ifft(np.multiply(samples[i],songs[i])))
+    return search_res
 
 
-def withWindow(x,func):
-    N = len(x)
-    return x*func(np.arange(N),N)
+def getSamples(sample_dir, songs_data):
+    sample_for_song = []
+    fs, data = sc.wavfile.read(sample_dir)
+    for song in songs_data:
+        sample_for_song.append(np.conjugate(np.fft.fft(data,n=len(song))))
+    return sample_for_song
 
+def getSignal(songsDir):
+    songs_dictionary = []
+    songs_data = []
+    for file in os.listdir(songsDir):
+        if file.endswith(".wav") and 'sample' not in file:
+            song_dir = os.path.join(songsDir,file)
+            fs, data = sc.wavfile.read(song_dir)
+            songs_dictionary.append(os.path.basename(song_dir))
+            print(songs_dictionary[-1])
+            freq_domain = np.fft.fft(data)
+            songs_data.append(freq_domain)
 
-def FFT(a):
-    size = len(a)
-    if size==1:
-        return a
-    yEven = FFT(a[::2])
-    yOdd = FFT(a[1::2])
-    wk= np.exp(-2j*np.pi*np.arange(size//2)/size)
-    return np.concatenate([yEven + wk*yOdd, yEven - wk * yOdd])
+    ##data = np.asarray(np.fft.ifft(freq_domain),np.int32)
+    ##sc.wavfile.write(os.path.join(songsDir,'out.wav'),fs,data)
+    return songs_dictionary, songs_data
 
-def getSignal(songDir):
-    fs, data = sc.wavfile.read(songDir)
-    t = songDir.split('\')
+a,b = getSignal('/home/ewais/PycharmProjects/dspProject')
+
+c = getSamples('/home/ewais/PycharmProjects/dspProject/sample.wav', b)
+
+detect_spike(conv(c,b))
